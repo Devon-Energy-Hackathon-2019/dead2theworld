@@ -1,0 +1,247 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "String",
+      "metadata": { "description": "Name of the logic app." }
+    },
+    "logicAppLocation": {
+      "defaultValue": "[resourceGroup().location]",
+      "allowedValues": [ "eastasia", "southeastasia", "centralus", "eastus", "eastus2", "westus", "northcentralus", "southcentralus", "northeurope", "westeurope", "japanwest", "japaneast", "brazilsouth", "australiaeast", "australiasoutheast", "southindia", "centralindia", "westindia", "canadacentral", "canadaeast", "westcentralus", "westus2", "[resourceGroup().location]" ],
+      "type": "String",
+      "metadata": { "description": "Location of the logic app." }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "name": "[parameters('logicAppName')]",
+      "apiVersion": "2016-06-01",
+      "location": "[parameters('logicAppLocation')]",
+      "properties": {
+        "state": "Disabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "$connections": {
+              "defaultValue": {},
+              "type": "Object"
+            },
+            "$authentication": {
+              "defaultValue": {},
+              "type": "SecureObject"
+            }
+          },
+          "triggers": {
+            "manual": {
+              "type": "Request",
+              "kind": "PowerApp",
+              "inputs": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "Createfile_FileContent": {
+                      "type": "string",
+                      "format": "binary",
+                      "description": "Content of the file.",
+                      "x-ms-powerflows-param-ispartial": false
+                    }
+                  },
+                  "required": [ "Createfile_FileContent" ]
+                }
+              }
+            }
+          },
+          "actions": {
+            "Create_file": {
+              "runAfter": {},
+              "metadata": { "flowSystemMetadata": { "swaggerOperationId": "CreateFile" } },
+              "type": "ApiConnection",
+              "inputs": {
+                "host": { "connection": { "name": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$connections']['sharepointonline']['connectionId']" } },
+                "method": "post",
+                "body": "@triggerBody()['Createfile_FileContent']",
+                "path": "/datasets/@{encodeURIComponent(encodeURIComponent('https://dvn.sharepoint.com/sites/Deploy'))}/files",
+                "queries": {
+                  "folderPath": "/FacesLibrary",
+                  "name": "face.jpg",
+                  "queryParametersSingleEncoded": true
+                },
+                "authentication": {
+                  "type": "Raw",
+                  "value": "@json(decodeBase64(triggerOutputs().headers['X-MS-APIM-Tokens']))['$ConnectionKey']"
+                }
+              }
+            },
+            "Compose": {
+              "runAfter": { "Create_file": [ "Succeeded" ] },
+              "type": "Compose",
+              "inputs": "@dataUriToBinary(triggerBody()['Createfile_FileContent'])"
+            },
+            "HTTP": {
+              "runAfter": { "Compose": [ "Succeeded" ] },
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "https://deploy-facerecognition.cognitiveservices.azure.com/face/v1.0/detect",
+                "headers": {
+                  "Ocp-Apim-Subscription-Key": "dffb777b6ee4430b8365c61382f34d38",
+                  "Content-Type": "application/octet-stream"
+                },
+                "queries": {
+                  "returnFaceAttribute": "age,gender,emotion,smile,hair,makeup,accessories,occlusion,exposure,noise",
+                  "returnFaceId": "faceid"
+                },
+                "body": "@outputs('Compose')"
+              }
+            },
+            "Parse_JSON": {
+              "runAfter": { "HTTP": [ "Succeeded" ] },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('HTTP')",
+                "schema": {
+                  "faceId": "0a4647a3-5e90-46bb-8414-d01775b7a1bc",
+                  "faceRectangle": {
+                    "top": 175,
+                    "left": 254,
+                    "width": 145,
+                    "height": 145
+                  }
+                }
+              }
+            },
+            "Append_to_string_variable": {
+              "runAfter": { "Initialize_variable": [ "Succeeded" ] },
+              "type": "AppendToStringVariable",
+              "inputs": {
+                "name": "FaceId",
+                "value": "@body('parse_JSON')?[0]['faceId']"
+              }
+            },
+            "Initialize_variable": {
+              "runAfter": { "Parse_JSON": [ "Succeeded" ] },
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name": "FaceId",
+                    "type": "String"
+                  }
+                ]
+              }
+            },
+            "HTTP_2": {
+              "runAfter": { "Append_to_string_variable": [ "Succeeded" ] },
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "https://deploy-facerecognition.cognitiveservices.azure.com/face/v1.0/identify",
+                "headers": {
+                  "Ocp-Apim-Subscription-Key": "dffb777b6ee4430b8365c61382f34d38",
+                  "Content-Type": "application/json"
+                },
+                "queries": { "returnFaceAttribute": "confidence" },
+                "body": {
+                  "PersonGroupId": "5",
+                  "faceIds": [ "@{variables('FaceId')}" ],
+                  "maxNumOfCandidatesReturned": 1,
+                  "confidenceThreshold": 0.5
+                }
+              }
+            },
+            "Initialize_variable_2": {
+              "runAfter": { "Parse_JSON_2": [ "Succeeded" ] },
+              "type": "InitializeVariable",
+              "inputs": {
+                "variables": [
+                  {
+                    "name": "FaceResultID",
+                    "type": "String",
+                    "value": "@{body('parse_JSON_2')?[0]['candidates'][0]['personId']}"
+                  }
+                ]
+              }
+            },
+            "Parse_JSON_2": {
+              "runAfter": { "HTTP_2": [ "Succeeded" ] },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('HTTP_2')",
+                "schema": {
+                  "faceId": "99357057-3fb4-4ef1-8d44-c5d0d50a7c5f",
+                  "candidates": [
+                    {
+                      "personId": "85070982-9e32-4b4d-84a3-eb39f2dc8e21",
+                      "confidence": 0.79238
+                    }
+                  ]
+                }
+              }
+            },
+            "HTTP_3": {
+              "runAfter": { "Initialize_variable_2": [ "Succeeded" ] },
+              "type": "Http",
+              "inputs": {
+                "method": "GET",
+                "uri": "https://deploy-facerecognition.cognitiveservices.azure.com/face/v1.0/persongroups/5/persons/@{variables('FaceResultID')}",
+                "headers": { "Ocp-Apim-Subscription-Key": "dffb777b6ee4430b8365c61382f34d38" }
+              }
+            },
+            "Respond_to_a_PowerApp_or_flow": {
+              "runAfter": { "Parse_JSON_3": [ "Succeeded" ] },
+              "type": "Response",
+              "kind": "PowerApp",
+              "inputs": {
+                "statusCode": 200,
+                "body": { "personnamematch": "@{body('parse_JSON_3')['name']}" },
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "personnamematch": {
+                      "title": "PersonNameMatch",
+                      "x-ms-dynamically-added": true,
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            },
+            "Parse_JSON_3": {
+              "runAfter": { "HTTP_3": [ "Succeeded" ] },
+              "type": "ParseJson",
+              "inputs": {
+                "content": "@body('HTTP_3')",
+                "schema": {
+                  "personId": "85070982-9e32-4b4d-84a3-eb39f2dc8e21",
+                  "persistedFaceIds": [],
+                  "name": "Miller, Matthew",
+                  "userData": "Miller, Matthew"
+                }
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {},
+        "runtimeConfiguration": {
+          "lifetime": {
+            "unit": "Day",
+            "count": 30
+          },
+          "collections": { "maximumItemCount": 100000 },
+          "performanceProfile": { "throttles": { "mode": "Low" } },
+          "retryPolicy": {
+            "type": "Exponential",
+            "interval": "PT7S",
+            "count": 2,
+            "minimumInterval": "PT5S",
+            "maximumInterval": "PT1H"
+          }
+        }
+      }
+    }
+  ]
+}
