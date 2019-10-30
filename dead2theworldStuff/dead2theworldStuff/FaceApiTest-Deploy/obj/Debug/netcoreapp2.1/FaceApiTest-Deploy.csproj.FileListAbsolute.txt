@@ -1,0 +1,11 @@
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.csproj.CoreCompileInputs.cache
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.AssemblyInfoInputs.cache
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.AssemblyInfo.cs
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\bin\Debug\netcoreapp2.1\FaceApiTest-Deploy.deps.json
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\bin\Debug\netcoreapp2.1\FaceApiTest-Deploy.runtimeconfig.json
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\bin\Debug\netcoreapp2.1\FaceApiTest-Deploy.runtimeconfig.dev.json
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\bin\Debug\netcoreapp2.1\FaceApiTest-Deploy.dll
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\bin\Debug\netcoreapp2.1\FaceApiTest-Deploy.pdb
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.dll
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.pdb
+C:\Users\millem7\source\repos\FaceApiTest-Deploy\FaceApiTest-Deploy\obj\Debug\netcoreapp2.1\FaceApiTest-Deploy.csprojAssemblyReference.cache
